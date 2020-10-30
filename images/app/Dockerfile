@@ -1,4 +1,4 @@
-FROM php:7.2-apache
+FROM php:7.3-apache
 
 RUN curl -s https://getcomposer.org/installer | php
 RUN mv composer.phar /usr/local/bin/composer
@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y \
   libsodium-dev \
   libssh2-1-dev \
   libxslt1-dev \
+  libzip-dev \
   lsof \
   default-mysql-client \
   vim \
@@ -59,6 +60,12 @@ RUN cd /tmp \
   && rm ioncube_loaders_lin_x86-64.tar.gz \
   && docker-php-ext-enable ioncube
 
+RUN pecl channel-update pecl.php.net \
+  && pecl install xdebug
+
+RUN docker-php-ext-enable xdebug \
+  && sed -i -e 's/^zend_extension/\;zend_extension/g' /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+
 RUN apt-get install -y gnupg \
   && curl -sL https://deb.nodesource.com/setup_10.x | bash - \
   && apt-get install -y nodejs \
@@ -68,3 +75,9 @@ RUN apt-get install -y gnupg \
 RUN a2enmod rewrite
 COPY conf/local.magento.conf /etc/apache2/sites-available/local.magento.conf
 RUN a2ensite local.magento.conf
+
+USER root
+RUN chmod 777 -R /var/www/html/
+RUN \
+    usermod -u 1000 www-data && \
+    groupmod -g 1000 www-data
